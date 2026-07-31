@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rezyume yaratish — Work.uz</title>
+<meta name="description" content="Bir necha daqiqada professional rezyume yarating va PDF sifatida yuklab oling.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0B1220;--blue:#3D5AFE;--blue-soft:#EAEFFF;--amber:#FFB020;--amber-2:#FFCE73;--bg:#F5F7FC;--text:#1A2240;--muted:#64708A;--line:#E3E8F5;--shadow-sm:0 2px 8px rgba(20,30,70,.06);--shadow-lg:0 30px 60px rgba(15,22,50,.16);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Sora',sans-serif;}
+  a{color:inherit;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px;}
+  header{background:var(--ink);padding:18px 0;}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;}
+  .logo{display:flex;align-items:center;gap:8px;color:#fff;font-family:'Sora';font-weight:800;font-size:18px;text-decoration:none;}
+  .logo span{color:var(--amber-2);}
+  header a.back{color:#B9C2E0;font-size:13px;text-decoration:none;}
+  header a.back:hover{color:#fff;}
+
+  main{padding:36px 0 80px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);}
+  h1{font-size:clamp(24px,3.2vw,30px);margin:10px 0 6px;}
+  .lead{font-size:14.5px;color:var(--muted);margin-bottom:28px;}
+
+  .layout{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow-sm);}
+  .panel h2{font-size:15px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+  .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;outline:none;background:#FAFBFF;}
+  .field input:focus,.field textarea:focus{border-color:var(--blue);background:#fff;}
+  .field textarea{min-height:70px;resize:vertical;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .rep-item{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;background:#FAFBFF;}
+  .rep-item .rm{position:absolute;top:10px;right:10px;background:none;color:#D14343;font-size:12px;font-weight:600;border:none;cursor:pointer;}
+  .add-btn{width:100%;padding:10px;border-radius:9px;border:1px dashed var(--line);background:#fff;color:var(--blue);font-weight:600;font-size:13px;cursor:pointer;margin-top:4px;}
+  .add-btn:hover{border-color:var(--blue);}
+
+  .actions{display:flex;gap:10px;margin-top:22px;position:sticky;bottom:0;background:var(--bg);padding-top:10px;}
+  .btn{flex:1;padding:13px;border-radius:10px;font-weight:700;font-size:14px;border:none;cursor:pointer;text-align:center;text-decoration:none;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--text);}
+
+  /* Preview (A4-ish) */
+  .preview-wrap{position:sticky;top:20px;}
+  .resume-page{
+    background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);
+    padding:44px 40px;min-height:600px;
+  }
+  .r-name{font-family:'Sora';font-size:26px;font-weight:800;color:var(--ink);}
+  .r-role{font-size:14px;color:var(--blue);font-weight:600;margin-top:2px;}
+  .r-contact{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;font-size:12px;color:var(--muted);}
+  .r-section{margin-top:24px;}
+  .r-section h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:12px;}
+  .r-section p.bio{font-size:12.5px;line-height:1.7;color:var(--text);}
+  .r-entry{margin-bottom:14px;}
+  .r-entry .r-top{display:flex;justify-content:space-between;font-size:13px;font-weight:700;}
+  .r-entry .r-sub{font-size:11.5px;color:var(--muted);margin:2px 0 6px;}
+  .r-entry .r-desc{font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap;}
+  .r-skills{display:flex;flex-wrap:wrap;gap:6px;}
+  .r-skill{font-size:11px;font-weight:600;background:var(--blue-soft);color:var(--blue);padding:4px 10px;border-radius:100px;}
+  .r-empty{color:#B7C0DE;font-style:italic;font-size:12.5px;}
+
+  footer{padding:30px 0;text-align:center;color:var(--muted);font-size:12.5px;}
+
+  @media(max-width:960px){.layout{grid-template-columns:1fr;}.preview-wrap{position:static;order:-1;}}
+
+  @media print{
+    body *{visibility:hidden;}
+    .resume-page, .resume-page *{visibility:visible;}
+    .resume-page{position:absolute;top:0;left:0;width:100%;box-shadow:none;border:none;border-radius:0;padding:20px 10px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="/" class="logo">Work<span>.uz</span></a>
+    <a href="/" class="back">← Bosh sahifa</a>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <span class="eyebrow">Rezyume yaratish</span>
+    <h1>Bir necha daqiqada rezyume tayyor</h1>
+    <p class="lead">Ma'lumotlarni to'ldiring — o'ng tomonda darhol ko'rinadi. Tugagach PDF sifatida yuklab oling. Ma'lumotlar shu brauzeringizda avtomatik saqlanadi.</p>
+
+    <div class="layout">
+      <!-- FORM -->
+      <div>
+        <div class="panel">
+          <h2>Shaxsiy ma'lumotlar</h2>
+          <div class="row2">
+            <div class="field"><label>Ism Familiya</label><input type="text" id="fName" placeholder="Aziz Karimov"></div>
+            <div class="field"><label>Lavozim / kasb</label><input type="text" id="fRole" placeholder="Frontend dasturchi"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Telefon</label><input type="text" id="fPhone" placeholder="+998 90 123 45 67"></div>
+            <div class="field"><label>Email</label><input type="email" id="fEmail" placeholder="aziz@example.com"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Shahar</label><input type="text" id="fCity" placeholder="Toshkent"></div>
+            <div class="field"><label>LinkedIn / portfolio (ixtiyoriy)</label><input type="text" id="fLink" placeholder="linkedin.com/in/..."></div>
+          </div>
+          <div class="field"><label>O'zingiz haqingizda (qisqa)</label><textarea id="fBio" placeholder="2 yillik tajribaga ega frontend dasturchi..."></textarea></div>
+        </div>
+
+        <div class="panel" style="margin-top:18px;">
+          <h2>Ish tajribasi</h2>
+          <div id="expList"></div>
+          <button class="add-btn" id="addExp">+ Tajriba qo'shish</button>
+        </div>
+
+        <div class="panel" style="margin-top:18px;">
+          <h2>Ta'lim</h2>
+          <div id="eduList"></div>
+          <button class="add-btn" id="addEdu">+ Ta'lim qo'shish</button>
+        </div>
+
+        <div class="panel" style="margin-top:18px;">
+          <h2>Ko'nikmalar</h2>
+          <div class="field"><label>Vergul bilan ajratib yozing</label><input type="text" id="fSkills" placeholder="JavaScript, React, Figma, Ingliz tili"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-ghost" id="clearBtn">Tozalash</button>
+          <button class="btn btn-primary" id="downloadBtn">PDF sifatida yuklab olish</button>
+        </div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="preview-wrap">
+        <div class="resume-page" id="preview"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>© 2026 Work.uz. Barcha huquqlar himoyalangan.</footer>
+
+<script>
+  const STORAGE_KEY = 'work_uz_resume_draft';
+  let state = {
+    name:'', role:'', phone:'', email:'', city:'', link:'', bio:'',
+    exp: [{title:'', company:'', period:'', desc:''}],
+    edu: [{school:'', field:'', year:''}],
+    skills: ''
+  };
+
+  try{
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved) state = Object.assign(state, JSON.parse(saved));
+  }catch(e){}
+
+  function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+  function bindField(id, key){
+    const el = document.getElementById(id);
+    el.value = state[key];
+    el.addEventListener('input', ()=>{ state[key] = el.value; save(); renderPreview(); });
+  }
+  ['fName:name','fRole:role','fPhone:phone','fEmail:email','fCity:city','fLink:link','fBio:bio','fSkills:skills']
+    .forEach(pair => { const [id,key] = pair.split(':'); bindField(id,key); });
+
+  function renderExpList(){
+    const el = document.getElementById('expList');
+    el.innerHTML = state.exp.map((x,i) => `
+      <div class="rep-item" data-i="${i}">
+        <button class="rm" data-rm-exp="${i}">✕ o'chirish</button>
+        <div class="row2">
+          <div class="field"><label>Lavozim</label><input type="text" data-exp="${i}:title" value="${escapeHtml(x.title)}" placeholder="Dasturchi"></div>
+          <div class="field"><label>Kompaniya</label><input type="text" data-exp="${i}:company" value="${escapeHtml(x.company)}" placeholder="PaySafe"></div>
+        </div>
+        <div class="field"><label>Muddat</label><input type="text" data-exp="${i}:period" value="${escapeHtml(x.period)}" placeholder="2023 — hozirgacha"></div>
+        <div class="field"><label>Tavsif</label><textarea data-exp="${i}:desc" placeholder="Asosiy vazifalar va yutuqlar...">${escapeHtml(x.desc)}</textarea></div>
+      </div>
+    `).join('');
+    el.querySelectorAll('[data-exp]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const [i,key] = inp.dataset.exp.split(':');
+        state.exp[i][key] = inp.value; save(); renderPreview();
+      });
+    });
+    el.querySelectorAll('[data-rm-exp]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.exp.splice(Number(btn.dataset.rmExp),1);
+        if(state.exp.length===0) state.exp.push({title:'',company:'',period:'',desc:''});
+        save(); renderExpList(); renderPreview();
+      });
+    });
+  }
+  document.getElementById('addExp').addEventListener('click', () => {
+    state.exp.push({title:'',company:'',period:'',desc:''}); save(); renderExpList(); renderPreview();
+  });
+
+  function renderEduList(){
+    const el = document.getElementById('eduList');
+    el.innerHTML = state.edu.map((x,i) => `
+      <div class="rep-item" data-i="${i}">
+        <button class="rm" data-rm-edu="${i}">✕ o'chirish</button>
+        <div class="field"><label>Muassasa</label><input type="text" data-edu="${i}:school" value="${escapeHtml(x.school)}" placeholder="TATU"></div>
+        <div class="row2">
+          <div class="field"><label>Yo'nalish</label><input type="text" data-edu="${i}:field" value="${escapeHtml(x.field)}" placeholder="Kompyuter injiniringi"></div>
+          <div class="field"><label>Yil</label><input type="text" data-edu="${i}:year" value="${escapeHtml(x.year)}" placeholder="2020 — 2024"></div>
+        </div>
+      </div>
+    `).join('');
+    el.querySelectorAll('[data-edu]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const [i,key] = inp.dataset.edu.split(':');
+        state.edu[i][key] = inp.value; save(); renderPreview();
+      });
+    });
+    el.querySelectorAll('[data-rm-edu]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.edu.splice(Number(btn.dataset.rmEdu),1);
+        if(state.edu.length===0) state.edu.push({school:'',field:'',year:''});
+        save(); renderEduList(); renderPreview();
+      });
+    });
+  }
+  document.getElementById('addEdu').addEventListener('click', () => {
+    state.edu.push({school:'',field:'',year:''}); save(); renderEduList(); renderPreview();
+  });
+
+  function renderPreview(){
+    const p = document.getElementById('preview');
+    const contactBits = [state.phone, state.email, state.city, state.link].filter(Boolean).map(escapeHtml);
+    const expHtml = state.exp.filter(x=>x.title||x.company).map(x => `
+      <div class="r-entry">
+        <div class="r-top"><span>${escapeHtml(x.title)||'—'}</span><span>${escapeHtml(x.period)}</span></div>
+        <div class="r-sub">${escapeHtml(x.company)}</div>
+        ${x.desc ? `<div class="r-desc">${escapeHtml(x.desc)}</div>` : ''}
+      </div>
+    `).join('');
+    const eduHtml = state.edu.filter(x=>x.school).map(x => `
+      <div class="r-entry">
+        <div class="r-top"><span>${escapeHtml(x.school)}</span><span>${escapeHtml(x.year)}</span></div>
+        <div class="r-sub">${escapeHtml(x.field)}</div>
+      </div>
+    `).join('');
+    const skillsArr = state.skills.split(',').map(s=>s.trim()).filter(Boolean);
+
+    p.innerHTML = `
+      <div class="r-name">${state.name ? escapeHtml(state.name) : '<span class="r-empty">Ismingiz</span>'}</div>
+      <div class="r-role">${escapeHtml(state.role) || ''}</div>
+      <div class="r-contact">${contactBits.length ? contactBits.map(c=>`<span>${c}</span>`).join('') : "<span class=\"r-empty\">Kontakt ma'lumotlari</span>"}</div>
+
+      ${state.bio ? `<div class="r-section"><h3>Haqida</h3><p class="bio">${escapeHtml(state.bio)}</p></div>` : ''}
+
+      <div class="r-section"><h3>Ish tajribasi</h3>${expHtml || "<p class=\"r-empty\">Hali qo'shilmagan</p>"}</div>
+      <div class="r-section"><h3>Ta'lim</h3>${eduHtml || "<p class=\"r-empty\">Hali qo'shilmagan</p>"}</div>
+      ${skillsArr.length ? `<div class="r-section"><h3>Ko'nikmalar</h3><div class="r-skills">${skillsArr.map(s=>`<span class="r-skill">${escapeHtml(s)}</span>`).join('')}</div></div>` : ''}
+    `;
+  }
+
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    const oldTitle = document.title;
+    document.title = (state.name || 'Rezyume') + ' - Work.uz';
+    window.print();
+    document.title = oldTitle;
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if(!confirm("Barcha kiritilgan ma'lumotlar tozalanadi. Davom etasizmi?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  });
+
+  renderExpList();
+  renderEduList();
+  renderPreview();
+</script>
+</body>
+</html>

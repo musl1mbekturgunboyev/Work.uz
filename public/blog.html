@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Work.uz</title>
+<meta name="description" content="Ish qidirish, rezyume yozish va karyera bo'yicha maslahatlar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0B1220;--blue:#3D5AFE;--blue-soft:#EAEFFF;--amber-2:#FFCE73;--bg:#F5F7FC;--text:#1A2240;--muted:#64708A;--line:#E3E8F5;--shadow-sm:0 2px 8px rgba(20,30,70,.06);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Sora',sans-serif;}
+  a{color:inherit;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+  header{background:var(--ink);padding:18px 0;}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;}
+  .logo{display:flex;align-items:center;gap:8px;color:#fff;font-family:'Sora';font-weight:800;font-size:18px;text-decoration:none;}
+  .logo span{color:var(--amber-2);}
+  header a.back{color:#B9C2E0;font-size:13px;text-decoration:none;}
+  header a.back:hover{color:#fff;}
+  main{padding:52px 0 80px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);}
+  h1{font-size:clamp(26px,3.6vw,34px);margin:12px 0 12px;}
+  .lead{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:36px;max-width:560px;}
+  .post-list{display:flex;flex-direction:column;gap:14px;margin-bottom:10px;}
+  .post-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.15s;}
+  .post-card:hover{border-color:var(--blue);}
+  .post-tag{display:inline-block;font-size:11px;font-weight:700;background:var(--blue-soft);color:var(--blue);padding:4px 10px;border-radius:100px;margin-bottom:10px;}
+  .post-card h3{font-size:17px;margin-bottom:8px;}
+  .post-card p{font-size:13.5px;color:var(--muted);line-height:1.6;}
+  .post-meta{font-size:12px;color:#9AA6C8;margin-top:10px;}
+
+  .post-full{display:none;background:#fff;border:1px solid var(--line);border-radius:18px;padding:36px;box-shadow:var(--shadow-sm);}
+  .post-full.open{display:block;}
+  .post-full h2{font-size:24px;margin-bottom:8px;}
+  .post-full .post-meta{margin-bottom:22px;}
+  .post-full .content p{font-size:14.5px;line-height:1.8;color:var(--text);margin-bottom:14px;}
+  .post-full .content h4{font-size:15.5px;margin:20px 0 8px;}
+  .post-full .content ul{margin:10px 0 14px 20px;font-size:14.5px;line-height:1.8;}
+  .back-to-list{display:inline-block;margin-bottom:18px;font-size:13px;color:var(--blue);cursor:pointer;font-weight:600;}
+  footer{padding:30px 0;text-align:center;color:var(--muted);font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="/" class="logo">Work<span>.uz</span></a>
+    <a href="/" class="back">← Bosh sahifa</a>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <span class="eyebrow">Blog</span>
+    <h1>Ish qidirish va karyera bo'yicha maslahatlar</h1>
+    <p class="lead">Rezyume tuzishdan suhbatga tayyorgarlikkacha — foydali maslahatlar to'plami.</p>
+
+    <div class="post-list" id="postList"></div>
+    <div class="post-full" id="postFull">
+      <span class="back-to-list" id="backToList">← Barcha maqolalar</span>
+      <h2 id="pfTitle"></h2>
+      <div class="post-meta" id="pfMeta"></div>
+      <div class="content" id="pfContent"></div>
+    </div>
+  </div>
+</main>
+<footer>© 2026 Work.uz. Barcha huquqlar himoyalangan.</footer>
+
+<script>
+  const posts = [
+    {
+      tag: "Rezyume",
+      title: "Rezyumeni qanday tuzish kerak: 7 ta amaliy maslahat",
+      excerpt: "Ish beruvchi rezyumeni o'rtacha 7 soniyada ko'zdan kechiradi. Shu qisqa vaqt ichida diqqatni tortish uchun nimalarga e'tibor berish kerak?",
+      date: "2026-06-02",
+      html: `
+        <p>Ish beruvchilar kuniga o'nlab rezyume ko'rib chiqadi, shuning uchun sizning rezyumengiz aynan birinchi qatorlarda o'zini ko'rsata olishi kerak.</p>
+        <h4>1. Aniq va qisqa yozing</h4>
+        <p>Rezyume 1-2 sahifadan oshmasligi kerak. Har bir gap aniq natija yoki mas'uliyatni ko'rsatsin — umumiy iboralardan qoching.</p>
+        <h4>2. Raqamlar bilan gapiring</h4>
+        <p>"Savdoni oshirdim" o'rniga "3 oy ichida savdoni 24% ga oshirdim" deb yozing. Raqamlar ishonch uyg'otadi.</p>
+        <h4>3. Har bir vakansiyaga moslashtiring</h4>
+        <p>Bitta universal rezyume o'rniga, har bir e'londagi talablarga mos kalit so'zlarni qo'shing.</p>
+        <h4>4. Kontakt ma'lumotlarini yangilang</h4>
+        <p>Telefon va email to'g'ri ekanini albatta tekshiring — bu eng oddiy, lekin eng ko'p uchraydigan xato.</p>
+        <h4>5. Grammatik xatolarsiz</h4>
+        <p>Rezyumeni yuborishdan oldin ovoz chiqarib o'qib chiqing — bu xatolarni topishning eng oson yo'li.</p>
+        <h4>6. Portfolio yoki loyihalarga havola qo'shing</h4>
+        <p>Agar sohangizda mumkin bo'lsa (dizayn, dasturlash, marketing), ishlaringizga havola qoldiring.</p>
+        <h4>7. PDF formatda yuboring</h4>
+        <p>Word fayli turli qurilmalarda formatini yo'qotishi mumkin — PDF har doim bir xil ko'rinadi.</p>
+      `
+    },
+    {
+      tag: "Suhbat",
+      title: "Ish suhbatiga qanday tayyorlanish kerak",
+      excerpt: "Suhbat — bu faqat ish beruvchi sizni baholaydigan joy emas, siz ham kompaniyani baholaysiz. Tayyorgarlik ikki tomonlama bo'lishi kerak.",
+      date: "2026-06-18",
+      html: `
+        <p>Yaxshi tayyorgarlik ko'rgan nomzod har doim ishonchliroq ko'rinadi — hatto tajriba boshqalarnikidan kam bo'lsa ham.</p>
+        <h4>Kompaniyani oldindan o'rganing</h4>
+        <p>Kompaniyaning veb-sayti, ijtimoiy tarmoqlari va mahsulotlari bilan tanishing. Suhbatda shu haqda savol berish sizni ajratib turadi.</p>
+        <h4>O'z tajribangizni tuzilgan holda gapiring</h4>
+        <p>"Vaziyat — Harakat — Natija" formulasidan foydalaning: qanday vaziyat bor edi, siz nima qildingiz, natija qanday bo'ldi.</p>
+        <h4>Savol berishga tayyor bo'ling</h4>
+        <p>Suhbat oxirida deyarli har doim "savolingiz bormi?" deb so'rashadi. Jamoa haqida, kundalik ish jarayoni haqida savol tayyorlab qo'ying.</p>
+        <h4>Vaqtida keling (yoki onlaynga ulaning)</h4>
+        <p>5-10 daqiqa oldin tayyor bo'ling — bu kichik detal, lekin katta taassurot qoldiradi.</p>
+      `
+    },
+    {
+      tag: "Karyera",
+      title: "Birinchi ish joyingizni tanlashda nimalarga e'tibor bering",
+      excerpt: "Maosh yagona mezon bo'lmasligi kerak. Uzoq muddatli karyera uchun boshqa qanday omillar muhim?",
+      date: "2026-07-05",
+      html: `
+        <p>Birinchi ish joyi keyingi karyerangizga katta ta'sir qiladi — shuning uchun tanlovni shoshilinch qilmang.</p>
+        <h4>O'rganish imkoniyati</h4>
+        <p>Yosh mutaxassis uchun tajribali hamkasblardan o'rganish imkoniyati ko'pincha maoshdan ham muhimroq.</p>
+        <h4>Kompaniya madaniyati</h4>
+        <p>Jamoa qanday ishlaydi, fikringizni erkin ayta olasizmi — bularni suhbat davomida his qilishga harakat qiling.</p>
+        <h4>O'sish yo'li</h4>
+        <p>Bir yildan keyin qanday lavozimga o'tish mumkinligini so'rashdan tortinmang — bu jiddiy nomzod ekaningizni ko'rsatadi.</p>
+        <h4>Ish-hayot balansi</h4>
+        <p>Uzoq muddatda charchab qolmaslik uchun ish grafigi va hurmatli munosabatlar muhim.</p>
+      `
+    }
+  ];
+
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+  function fmtDate(iso){ return new Date(iso).toLocaleDateString('uz-UZ', {day:'numeric', month:'long', year:'numeric'}); }
+
+  const listEl = document.getElementById('postList');
+  listEl.innerHTML = posts.map((p, i) => `
+    <div class="post-card" data-i="${i}">
+      <span class="post-tag">${escapeHtml(p.tag)}</span>
+      <h3>${escapeHtml(p.title)}</h3>
+      <p>${escapeHtml(p.excerpt)}</p>
+      <div class="post-meta">${fmtDate(p.date)}</div>
+    </div>
+  `).join('');
+
+  const postFull = document.getElementById('postFull');
+  listEl.querySelectorAll('.post-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const p = posts[card.dataset.i];
+      document.getElementById('pfTitle').textContent = p.title;
+      document.getElementById('pfMeta').textContent = fmtDate(p.date) + ' · ' + p.tag;
+      document.getElementById('pfContent').innerHTML = p.html;
+      listEl.style.display = 'none';
+      postFull.classList.add('open');
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+  document.getElementById('backToList').addEventListener('click', () => {
+    postFull.classList.remove('open');
+    listEl.style.display = '';
+  });
+</script>
+</body>
+</html>

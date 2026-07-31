@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yordam — Work.uz</title>
+<meta name="description" content="Work.uz bo'yicha ko'p so'raladigan savollar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0B1220;--blue:#3D5AFE;--blue-soft:#EAEFFF;--amber-2:#FFCE73;--bg:#F5F7FC;--text:#1A2240;--muted:#64708A;--line:#E3E8F5;--shadow-sm:0 2px 8px rgba(20,30,70,.06);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+  h1,h2{font-family:'Sora',sans-serif;}
+  a{color:var(--blue);}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+  header{background:var(--ink);padding:18px 0;}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;}
+  .logo{display:flex;align-items:center;gap:8px;color:#fff;font-family:'Sora';font-weight:800;font-size:18px;text-decoration:none;}
+  .logo span{color:var(--amber-2);}
+  header a.back{color:#B9C2E0;font-size:13px;text-decoration:none;}
+  header a.back:hover{color:#fff;}
+  main{padding:52px 0 80px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);}
+  h1{font-size:clamp(26px,3.6vw,34px);margin:12px 0 12px;}
+  .lead{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:14px;max-width:560px;}
+  .section-label{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:32px 0 14px;}
+  .faq-item{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm);}
+  .faq-q{padding:18px 20px;font-weight:600;font-size:14.5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  .faq-q .chevron{transition:.2s;color:var(--muted);flex:none;}
+  .faq-item.open .chevron{transform:rotate(180deg);}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .25s ease;}
+  .faq-a-inner{padding:0 20px 18px;font-size:14px;color:var(--muted);line-height:1.7;}
+  .cta-box{margin-top:36px;background:var(--ink);color:#fff;border-radius:16px;padding:26px 28px;text-align:center;}
+  .cta-box p{font-size:13.5px;color:#C4CCE8;margin-bottom:14px;}
+  .cta-box a{display:inline-block;background:var(--blue);color:#fff;font-weight:700;padding:10px 22px;border-radius:10px;text-decoration:none;font-size:13.5px;}
+  footer{padding:30px 0;text-align:center;color:var(--muted);font-size:12.5px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="/" class="logo">Work<span>.uz</span></a>
+    <a href="/" class="back">← Bosh sahifa</a>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <span class="eyebrow">Yordam</span>
+    <h1>Ko'p so'raladigan savollar</h1>
+    <p class="lead">Javobini topa olmadingizmi? Pastdagi "Aloqa" tugmasi orqali yozing.</p>
+
+    <div class="section-label">Nomzodlar uchun</div>
+    <div class="faq-list" id="faqCandidates"></div>
+
+    <div class="section-label">Ish beruvchilar uchun</div>
+    <div class="faq-list" id="faqEmployers"></div>
+
+    <div class="section-label">Hisob va xavfsizlik</div>
+    <div class="faq-list" id="faqAccount"></div>
+
+    <div class="cta-box">
+      <p>Javobini topa olmadingizmi?</p>
+      <a href="/aloqa.html">Biz bilan bog'lanish</a>
+    </div>
+  </div>
+</main>
+<footer>© 2026 Work.uz. Barcha huquqlar himoyalangan.</footer>
+
+<script>
+  const data = {
+    faqCandidates: [
+      ["Qanday ro'yxatdan o'taman?", "Bosh sahifadagi \"Kirish\" tugmasini bosing, \"Ro'yxatdan o'ting\" havolasini tanlang, ism/email/parolni kiriting. Emailingizga kelgan 6 xonali kodni tasdiqlasangiz, hisobingiz tayyor."],
+      ["Ariza yuborganimda rezyume shart emi?", "Yo'q, rezyume ixtiyoriy. Xohlasangiz PDF yoki Word (.doc/.docx, 5MB gacha) fayl biriktirishingiz mumkin — bu ish beruvchiga sizni yaxshiroq baholashga yordam beradi."],
+      ["Ariza yuborganimdan keyin nima bo'ladi?", "Ish beruvchiga darhol email xabar boradi. Agar sizni ishga qabul qilishsa, shaxsan sizga \"tabriklaymiz\" degan email keladi."],
+      ["Bitta vakansiyaga necha marta ariza yubora olaman?", "Bir marta — tizim takroriy arizani avtomatik oldini oladi, xavotir olmang."]
+    ],
+    faqEmployers: [
+      ["Vakansiya joylash bepulmi?", "Ha, hozirgi bosqichda vakansiya joylash butunlay bepul. Batafsil \"Narxlar\" sahifasida."],
+      ["Kelgan arizalarni qayerdan ko'raman?", "O'z vakansiyangiz ustidagi \"👥 X ta ariza\" tugmasini bosing — barcha nomzodlarning ismi, emaili va rezyumesi (agar biriktirilgan bo'lsa) shu yerda."],
+      ["Nomzodni qanday ishga qabul qilaman?", "Arizachilar ro'yxatida kerakli nomzod yonidagi \"✓ Ishga oldim\" tugmasini bosing — lavozim avtomatik yopiladi va nomzodga tabrik xabari ketadi."],
+      ["Vakansiyani qanday o'chiraman yoki yopaman?", "Vakansiyalar ro'yxatida o'z e'loningiz ustida \"✕\" (o'chirish) yoki \"Ishga qabul qilindi — yopish\" tugmalari bor."]
+    ],
+    faqAccount: [
+      ["Parolimni unutdim, nima qilaman?", "Kirish oynasidagi \"Parolni unutdingizmi?\" havolasini bosing, emailingizga kod keladi, yangi parol o'rnatasiz."],
+      ["Ma'lumotlarim xavfsizmi?", "Parollar bcrypt algoritmi bilan shifrlanadi, hech qachon oddiy matn holida saqlanmaydi. Sessiyalar JWT token orqali himoyalangan."],
+      ["Hisobimni butunlay o'chirtirishim mumkinmi?", "Ha, \"Aloqa\" formasi orqali so'rov yuboring — hisobingiz va unga bog'liq barcha ma'lumotlar o'chiriladi."]
+    ]
+  };
+
+  function renderFaq(containerId, items){
+    const el = document.getElementById(containerId);
+    el.innerHTML = items.map(([q,a], i) => `
+      <div class="faq-item" data-i="${containerId}-${i}">
+        <div class="faq-q">${q}<span class="chevron">▾</span></div>
+        <div class="faq-a"><div class="faq-a-inner">${a}</div></div>
+      </div>
+    `).join('');
+    el.querySelectorAll('.faq-item').forEach(item => {
+      const q = item.querySelector('.faq-q');
+      const a = item.querySelector('.faq-a');
+      q.addEventListener('click', () => {
+        const isOpen = item.classList.contains('open');
+        item.classList.toggle('open', !isOpen);
+        a.style.maxHeight = !isOpen ? a.scrollHeight + 'px' : '0';
+      });
+    });
+  }
+
+  renderFaq('faqCandidates', data.faqCandidates);
+  renderFaq('faqEmployers', data.faqEmployers);
+  renderFaq('faqAccount', data.faqAccount);
+</script>
+</body>
+</html>

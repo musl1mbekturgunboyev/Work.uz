@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work.uz — Admin panel</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1220; --blue:#3D5AFE; --blue-soft:#EAEFFF; --amber:#FFB020;
+    --bg:#F5F7FC; --card:#FFFFFF; --text:#1A2240; --muted:#64708A; --line:#E3E8F5;
+    --danger:#D14343; --danger-soft:#FDECEC; --ok:#0FA968; --ok-soft:#E7FBF3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Sora',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px;}
+
+  header{background:var(--ink);color:#fff;padding:20px 0;}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;}
+  .brand svg{flex:none;}
+  .brand small{font-weight:500;font-size:12px;color:#9AA6D1;margin-left:6px;}
+  header a{color:#B9C2E0;font-size:13px;text-decoration:none;}
+  header a:hover{color:#fff;}
+
+  main{padding:36px 0 80px;}
+  .tabs{display:flex;gap:8px;margin-bottom:24px;}
+  .tab-btn{
+    padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;
+    background:#fff;border:1px solid var(--line);color:var(--muted);cursor:pointer;
+  }
+  .tab-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .panel-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .panel-head h3{font-size:16px;}
+  .panel-head .count{font-size:13px;color:var(--muted);}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;padding:12px 16px;background:#FAFBFF;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line);}
+  td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#FAFBFF;}
+  .pill{display:inline-block;padding:4px 10px;border-radius:100px;font-size:11.5px;font-weight:700;}
+  .pill-open{background:var(--ok-soft);color:var(--ok);}
+  .pill-filled{background:#F1F0FF;color:#7B5CFA;}
+  .pill-yes{background:var(--ok-soft);color:var(--ok);}
+  .pill-no{background:var(--danger-soft);color:var(--danger);}
+  .btn-sm{font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;background:var(--danger-soft);color:var(--danger);border:none;cursor:pointer;margin-right:6px;}
+  .btn-sm:hover{background:var(--danger);color:#fff;}
+  .btn-sm.reopen{background:var(--blue-soft);color:var(--blue);}
+  .btn-sm.reopen:hover{background:var(--blue);color:#fff;}
+  .btn-sm:disabled{opacity:.4;cursor:not-allowed;}
+  .empty-row td{text-align:center;color:var(--muted);padding:40px;}
+
+  .gate{max-width:380px;margin:80px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:32px;text-align:center;}
+  .gate h2{font-size:20px;margin-bottom:8px;}
+  .gate p{color:var(--muted);font-size:13.5px;margin-bottom:20px;line-height:1.6;}
+  .gate input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14px;margin-bottom:10px;}
+  .gate button{width:100%;padding:12px;border-radius:10px;background:var(--blue);color:#fff;font-weight:600;border:none;cursor:pointer;font-size:14px;}
+  .gate .err{color:var(--danger);font-size:12.5px;margin-top:10px;min-height:16px;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 40 40" fill="none"><defs><linearGradient id="g" x1="2" y1="30" x2="38" y2="8" gradientUnits="userSpaceOnUse"><stop stop-color="#3D5AFE"/><stop offset="1" stop-color="#FFB020"/></linearGradient></defs><path d="M4 15 L11 27 L17.5 12 L23 27 L30 9 L36 20" stroke="url(#g)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="20" r="3" fill="#FFB020"/></svg>
+      Work.uz <small>ADMIN</small>
+    </div>
+    <a href="/">← Saytga qaytish</a>
+  </div>
+</header>
+
+<div id="gateView" class="gate hidden">
+  <h2 id="gateTitle">Admin sifatida kiring</h2>
+  <p id="gateSub">Bu panel faqat ADMIN_EMAILS ro'yxatidagi hisoblar uchun.</p>
+  <input type="email" id="gateEmail" placeholder="Email">
+  <input type="password" id="gatePassword" placeholder="Parol">
+  <button id="gateBtn">Kirish</button>
+  <div class="err" id="gateErr"></div>
+</div>
+
+<main id="mainView" class="hidden">
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="vacancies">Vakansiyalar</button>
+      <button class="tab-btn" data-tab="users">Foydalanuvchilar</button>
+    </div>
+
+    <div class="panel" id="vacanciesPanel">
+      <div class="panel-head"><h3>Barcha vakansiyalar</h3><span class="count mono" id="vacCount">–</span></div>
+      <table>
+        <thead><tr><th>Sarlavha</th><th>Kompaniya</th><th>Soha</th><th>Holat</th><th>Egasi</th><th>Sana</th><th>Amallar</th></tr></thead>
+        <tbody id="vacBody"><tr class="empty-row"><td colspan="7">Yuklanmoqda...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel hidden" id="usersPanel">
+      <div class="panel-head"><h3>Barcha foydalanuvchilar</h3><span class="count mono" id="userCount">–</span></div>
+      <table>
+        <thead><tr><th>Ism</th><th>Email</th><th>Tasdiqlangan</th><th>Vakansiyalari</th><th>Ro'yxatdan o'tgan</th><th>Amallar</th></tr></thead>
+        <tbody id="userBody"><tr class="empty-row"><td colspan="6">Yuklanmoqda...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  let token = localStorage.getItem('work_uz_token') || null;
+
+  async function api(path, opts){
+    opts = opts || {};
+    const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+    if(token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(path, Object.assign({}, opts, {headers}));
+    let data = null;
+    try{ data = await res.json(); }catch(e){}
+    if(!res.ok) throw new Error((data && data.error) || 'Xatolik');
+    return data;
+  }
+
+  function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+  function fmtDate(iso){ try{ return new Date(iso).toLocaleString('uz-UZ'); }catch(e){ return iso; } }
+
+  const gateView = document.getElementById('gateView');
+  const mainView = document.getElementById('mainView');
+  const gateErr = document.getElementById('gateErr');
+
+  async function tryEnter(){
+    if(!token){ showGate("Admin sifatida kiring", "Bu panel faqat ADMIN_EMAILS ro'yxatidagi hisoblar uchun."); return; }
+    try{
+      const who = await api('/api/admin/whoami');
+      if(!who.isAdmin){
+        showGate("Ruxsat yo'q", "Bu hisobda admin huquqi yo'q. Boshqa hisob bilan kiring.");
+        return;
+      }
+      mainView.classList.remove('hidden');
+      gateView.classList.add('hidden');
+      loadVacancies();
+      loadUsers();
+    }catch(err){
+      showGate("Admin sifatida kiring", "Sessiya tugagan yoki hisobingiz yo'q. Qayta kiring.");
+    }
+  }
+
+  function showGate(title, sub){
+    document.getElementById('gateTitle').textContent = title;
+    document.getElementById('gateSub').textContent = sub;
+    gateView.classList.remove('hidden');
+    mainView.classList.add('hidden');
+  }
+
+  document.getElementById('gateBtn').addEventListener('click', async ()=>{
+    gateErr.textContent = '';
+    const email = document.getElementById('gateEmail').value.trim();
+    const password = document.getElementById('gatePassword').value;
+    try{
+      const data = await api('/api/auth/login', {method:'POST', body: JSON.stringify({email,password})});
+      token = data.token;
+      localStorage.setItem('work_uz_token', token);
+      tryEnter();
+    }catch(err){
+      gateErr.textContent = err.message;
+    }
+  });
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('vacanciesPanel').classList.toggle('hidden', tab!=='vacancies');
+      document.getElementById('usersPanel').classList.toggle('hidden', tab!=='users');
+    });
+  });
+
+  async function loadVacancies(){
+    try{
+      const data = await api('/api/admin/vacancies');
+      document.getElementById('vacCount').textContent = data.vacancies.length + ' ta';
+      const body = document.getElementById('vacBody');
+      if(data.vacancies.length === 0){
+        body.innerHTML = '<tr class="empty-row"><td colspan="7">Hozircha vakansiya yo\'q</td></tr>';
+        return;
+      }
+      body.innerHTML = data.vacancies.map(v => `
+        <tr>
+          <td><b>${escapeHtml(v.title)}</b></td>
+          <td>${escapeHtml(v.company)}</td>
+          <td>${escapeHtml(v.cat)}</td>
+          <td><span class="pill ${v.status==='open'?'pill-open':'pill-filled'}">${v.status==='open'?'Ochiq':'Yopilgan'}</span></td>
+          <td>${escapeHtml(v.owner_email || '—')}</td>
+          <td class="mono" style="font-size:12px;">${fmtDate(v.created_at)}</td>
+          <td>
+            ${v.status==='filled' ? `<button class="btn-sm reopen" data-reopen="${v.id}">Qayta ochish</button>` : ''}
+            <button class="btn-sm" data-delvac="${v.id}">O'chirish</button>
+          </td>
+        </tr>
+      `).join('');
+
+      body.querySelectorAll('[data-delvac]').forEach(b=>{
+        b.addEventListener('click', async ()=>{
+          if(!confirm("Bu vakansiyani butunlay o'chirmoqchimisiz?")) return;
+          try{ await api('/api/admin/vacancies/' + b.dataset.delvac, {method:'DELETE'}); loadVacancies(); }
+          catch(err){ alert(err.message); }
+        });
+      });
+      body.querySelectorAll('[data-reopen]').forEach(b=>{
+        b.addEventListener('click', async ()=>{
+          try{ await api('/api/admin/vacancies/' + b.dataset.reopen + '/reopen', {method:'PATCH'}); loadVacancies(); }
+          catch(err){ alert(err.message); }
+        });
+      });
+    }catch(err){
+      document.getElementById('vacBody').innerHTML = `<tr class="empty-row"><td colspan="7">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  async function loadUsers(){
+    try{
+      const data = await api('/api/admin/users');
+      document.getElementById('userCount').textContent = data.users.length + ' ta';
+      const body = document.getElementById('userBody');
+      if(data.users.length === 0){
+        body.innerHTML = '<tr class="empty-row"><td colspan="6">Hozircha foydalanuvchi yo\'q</td></tr>';
+        return;
+      }
+      body.innerHTML = data.users.map(u => `
+        <tr>
+          <td><b>${escapeHtml(u.name)}</b></td>
+          <td>${escapeHtml(u.email)}</td>
+          <td><span class="pill ${u.email_verified?'pill-yes':'pill-no'}">${u.email_verified?'Ha':"Yo'q"}</span></td>
+          <td class="mono">${u.vacancy_count}</td>
+          <td class="mono" style="font-size:12px;">${fmtDate(u.created_at)}</td>
+          <td><button class="btn-sm" data-deluser="${u.id}">O'chirish</button></td>
+        </tr>
+      `).join('');
+
+      body.querySelectorAll('[data-deluser]').forEach(b=>{
+        b.addEventListener('click', async ()=>{
+          if(!confirm("Bu foydalanuvchini va uning barcha vakansiyalarini butunlay o'chirmoqchimisiz?")) return;
+          try{ await api('/api/admin/users/' + b.dataset.deluser, {method:'DELETE'}); loadUsers(); loadVacancies(); }
+          catch(err){ alert(err.message); }
+        });
+      });
+    }catch(err){
+      document.getElementById('userBody').innerHTML = `<tr class="empty-row"><td colspan="6">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  tryEnter();
+</script>
+</body>
+</html>
