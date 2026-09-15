@@ -5,6 +5,7 @@ const dns = require('dns');
 try { dns.setDefaultResultOrder('ipv4first'); } catch (e) { /* eski Node versiyasida mavjud emas */ }
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
@@ -112,15 +113,23 @@ async function initDb() {
     "ALTER TABLE users ADD COLUMN verify_expires TEXT",
     "ALTER TABLE users ADD COLUMN reset_code TEXT",
     "ALTER TABLE users ADD COLUMN reset_expires TEXT",
+    "ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE applications ADD COLUMN resume_path TEXT",
+    "ALTER TABLE applications ADD COLUMN resume_storage TEXT",
   ];
   for (const m of migrations) {
     try { await client.execute(m); } catch (e) { /* ustun allaqachon mavjud */ }
   }
 }
 
-// ----- Email transport (real SMTP if configured, otherwise dev fallback) -----
+// ----- Email yuborish: Brevo (HTTP API, tavsiya etiladi) > SMTP (Gmail va h.k.) > dev konsol -----
+// Render kabi ba'zi hostinglarda Gmail SMTP'ga ulanish IPv6 marshrutlash muammosi
+// (ENETUNREACH) tufayli ishlamaydi. Brevo oddiy HTTPS so'rovi orqali ishlagani
+// uchun bu muammoga umuman duch kelmaydi — shuning uchun u ustuvor.
+const brevoConfigured = !!(process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL);
 const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const emailConfigured = brevoConfigured || smtpConfigured;
+
 let mailer = null;
 if (smtpConfigured) {
   mailer = nodemailer.createTransport({
@@ -128,16 +137,53 @@ if (smtpConfigured) {
     port: Number(process.env.SMTP_PORT || 587),
     secure: Number(process.env.SMTP_PORT) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    // Render kabi ba'zi hostinglarda Gmail'ga IPv6 orqali ulanish "ENETUNREACH"
-    // xatosi bilan yiqiladi — shuning uchun ulanishni IPv4'ga majburlaymiz.
     family: 4,
     connectionTimeout: 15000,
   });
+}
+
+if (brevoConfigured) {
+  console.log('✉️  Brevo sozlangan — tasdiqlash kodlari haqiqiy emailga (HTTP API orqali) yuboriladi.');
+} else if (smtpConfigured) {
   console.log('✉️  SMTP sozlangan — tasdiqlash kodlari haqiqiy emailga yuboriladi.');
+  console.warn("   Eslatma: ba'zi hostinglarda (masalan Render) Gmail SMTP IPv6 muammosi tufayli ishlamasligi mumkin.");
+  console.warn("   Shunday bo'lsa, README.md dagi Brevo (HTTP API) sozlash bo'limiga o'ting.");
 } else {
-  console.warn('✉️  DIQQAT: SMTP sozlanmagan — tasdiqlash kodlari HAQIQIY emailga YUBORILMAYDI.');
+  console.warn("✉️  DIQQAT: Email xizmati sozlanmagan — tasdiqlash kodlari HAQIQIY emailga YUBORILMAYDI.");
   console.warn('   Buning o\'rniga kod server konsoliga chiqariladi (faqat lokal test uchun).');
-  console.warn('   Haqiqiy emailga yuborish uchun README.md dagi SMTP sozlash bo\'limini ko\'ring.');
+  console.warn('   Haqiqiy emailga yuborish uchun README.md dagi Email sozlash bo\'limini ko\'ring.');
+}
+
+// Barcha email turlari shu funksiya orqali yuboriladi
+async function sendMail({ to, subject, text, html, replyTo }) {
+  if (brevoConfigured) {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { email: process.env.BREVO_SENDER_EMAIL, name: 'Work.uz' },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: text,
+        ...(replyTo ? { replyTo: { email: replyTo } } : {}),
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Brevo xatolik (${res.status}): ${errText}`);
+    }
+    return;
+  }
+  if (mailer) {
+    await mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, replyTo, subject, text, html });
+    return;
+  }
+  console.log(`\n📧 [DEV MODE — email yuborilmadi] ${to} uchun: ${subject}\n${text}\n`);
 }
 
 function generateCode() {
@@ -152,57 +198,37 @@ async function sendVerificationEmail(to, name, code) {
   const subject = 'Work.uz — tasdiqlash kodi';
   const text = `Salom, ${name}!\n\nWork.uz platformasida ro'yxatdan o'tishni yakunlash uchun quyidagi kodni kiriting:\n\n${code}\n\nKod ${CODE_TTL_MIN} daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, xabarni e'tiborsiz qoldiring.`;
   const html = `<p>Salom, <b>${name}</b>!</p><p>Work.uz platformasida ro'yxatdan o'tishni yakunlash uchun quyidagi kodni kiriting:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p><p>Kod ${CODE_TTL_MIN} daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, xabarni e'tiborsiz qoldiring.</p>`;
-  if (mailer) {
-    await mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text, html });
-  } else {
-    console.log(`\n📧 [DEV MODE — email yuborilmadi] ${to} uchun tasdiqlash kodi: ${code}\n`);
-  }
+  await sendMail({ to, subject, text, html });
 }
 
 async function sendResetEmail(to, name, code) {
   const subject = 'Work.uz — parolni tiklash kodi';
   const text = `Salom, ${name}!\n\nParolingizni tiklash uchun quyidagi kodni kiriting:\n\n${code}\n\nKod ${CODE_TTL_MIN} daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, xabarni e'tiborsiz qoldiring — parolingiz o'zgarmaydi.`;
   const html = `<p>Salom, <b>${name}</b>!</p><p>Parolingizni tiklash uchun quyidagi kodni kiriting:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p><p>Kod ${CODE_TTL_MIN} daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, xabarni e'tiborsiz qoldiring — parolingiz o'zgarmaydi.</p>`;
-  if (mailer) {
-    await mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text, html });
-  } else {
-    console.log(`\n📧 [DEV MODE — email yuborilmadi] ${to} uchun parolni tiklash kodi: ${code}\n`);
-  }
+  await sendMail({ to, subject, text, html });
 }
 
 async function sendApplicationNotification(ownerEmail, ownerName, applicantName, applicantEmail, jobTitle) {
   const subject = `Work.uz — "${jobTitle}" vakansiyasiga yangi ariza`;
   const text = `Salom, ${ownerName}!\n\n"${jobTitle}" lavozimingizga yangi ariza tushdi.\n\nNomzod: ${applicantName}\nEmail: ${applicantEmail}\n\nNomzod bilan bog'lanish uchun shu emailga to'g'ridan-to'g'ri yozishingiz mumkin. Barcha arizachilarni Work.uz saytidagi vakansiyangiz ostida ham ko'rishingiz mumkin.`;
   const html = `<p>Salom, <b>${ownerName}</b>!</p><p><b>${escapeHtmlServer(jobTitle)}</b> lavozimingizga yangi ariza tushdi.</p><p><b>Nomzod:</b> ${escapeHtmlServer(applicantName)}<br><b>Email:</b> ${escapeHtmlServer(applicantEmail)}</p><p>Nomzod bilan bog'lanish uchun shu emailga to'g'ridan-to'g'ri yozishingiz mumkin. Barcha arizachilarni Work.uz saytidagi vakansiyangiz ostida ham ko'rishingiz mumkin.</p>`;
-  if (mailer) {
-    await mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: ownerEmail, subject, text, html });
-  } else {
-    console.log(`\n📧 [DEV MODE — email yuborilmadi] ${ownerEmail} uchun xabar: ${applicantName} (${applicantEmail}) "${jobTitle}" ga ariza yubordi\n`);
-  }
+  await sendMail({ to: ownerEmail, subject, text, html });
 }
 
 async function sendHiredEmail(candidateEmail, candidateName, jobTitle, companyName) {
   const subject = `Work.uz — Tabriklaymiz! "${jobTitle}" lavozimiga qabul qilindingiz`;
   const text = `Salom, ${candidateName}!\n\nTabriklaymiz! Siz "${jobTitle}" (${companyName}) lavozimiga ishga qabul qilindingiz.\n\nKompaniya sizga tez orada bog'lanadi. Muvaffaqiyatlar tilaymiz!`;
   const html = `<p>Salom, <b>${candidateName}</b>!</p><p>🎉 Tabriklaymiz! Siz <b>${escapeHtmlServer(jobTitle)}</b> (${escapeHtmlServer(companyName)}) lavozimiga ishga qabul qilindingiz.</p><p>Kompaniya sizga tez orada bog'lanadi. Muvaffaqiyatlar tilaymiz!</p>`;
-  if (mailer) {
-    await mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: candidateEmail, subject, text, html });
-  } else {
-    console.log(`\n📧 [DEV MODE — email yuborilmadi] ${candidateEmail} uchun xabar: "${jobTitle}" lavozimiga qabul qilindingiz\n`);
-  }
+  await sendMail({ to: candidateEmail, subject, text, html });
 }
 
 async function sendContactEmail(name, fromEmail, message) {
-  const to = ADMIN_EMAILS[0] || process.env.SMTP_FROM || process.env.SMTP_USER;
+  const to = ADMIN_EMAILS[0] || process.env.SMTP_FROM || process.env.SMTP_USER || process.env.BREVO_SENDER_EMAIL;
   if (!to) { console.log(`\n📧 [DEV MODE — qabul qiluvchi yo'q] Aloqa xabari: ${name} <${fromEmail}>: ${message}\n`); return; }
   const subject = `Work.uz — Aloqa formasidan yangi xabar (${name})`;
   const text = `Ism: ${name}\nEmail: ${fromEmail}\n\nXabar:\n${message}`;
   const html = `<p><b>Ism:</b> ${escapeHtmlServer(name)}<br><b>Email:</b> ${escapeHtmlServer(fromEmail)}</p><p><b>Xabar:</b></p><p>${escapeHtmlServer(message).replace(/\n/g, '<br>')}</p>`;
-  if (mailer) {
-    await mailer.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, replyTo: fromEmail, subject, text, html });
-  } else {
-    console.log(`\n📧 [DEV MODE — email yuborilmadi] ${to} uchun aloqa xabari: ${name} <${fromEmail}>: ${message}\n`);
-  }
+  await sendMail({ to, replyTo: fromEmail, subject, text, html });
 }
 
 // ----- Admin (email manzillari orqali belgilanadi, ADMIN_EMAILS env var, vergul bilan ajratilgan) -----
@@ -217,10 +243,31 @@ if (ADMIN_EMAILS.length === 0) {
   console.log(`🛡️  Admin sifatida belgilangan: ${ADMIN_EMAILS.join(', ')}`);
 }
 
-app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+    },
+  },
+}));
+
+// CORS: standart holatda faqat shu saytning o'zidan kelgan so'rovlar ishlaydi
+// (frontend shu serverning o'zidan xizmat qilgani uchun bu yetarli). Agar
+// kelajakda alohida domendagi frontend shu API'ga murojaat qilishi kerak
+// bo'lsa, ALLOWED_ORIGINS=https://boshqa-domen.com,https://yana-biri.com kabi
+// environment variable qo'shing.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : { origin: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Fayllar endi ommaviy static orqali emas, faqat autentifikatsiyalangan
+// /api/applications/:id/resume endpointi orqali beriladi (pastda).
 
 // ----- Rate limiting (spam/abuse himoyasi) -----
 const authLimiter = rateLimit({
@@ -269,41 +316,74 @@ const upload = multer({
   },
 });
 
+// Faylning "haqiqiy" turini brauzer aytgan MIME-turiga emas, faylning
+// birinchi baytlariga (magic number) qarab tekshiradi — soxta kengaytma/MIME
+// bilan zararli fayl yuklashning oldini oladi.
+function isValidResumeBuffer(buffer, mimetype) {
+  if (!buffer || buffer.length < 4) return false;
+  const sig = buffer.subarray(0, 4);
+  const isPdf = sig[0] === 0x25 && sig[1] === 0x50 && sig[2] === 0x44 && sig[3] === 0x46; // %PDF
+  const isZipBased = sig[0] === 0x50 && sig[1] === 0x4b && (sig[2] === 0x03 || sig[2] === 0x05 || sig[2] === 0x07); // PK.. (.docx)
+  const isOle = sig[0] === 0xd0 && sig[1] === 0xcf && sig[2] === 0x11 && sig[3] === 0xe0; // eski .doc
+  if (mimetype === 'application/pdf') return isPdf;
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return isZipBased;
+  if (mimetype === 'application/msword') return isOle;
+  return false;
+}
+
 function makeResumeFilename(originalname) {
   const ext = path.extname(originalname).slice(0, 10).replace(/[^a-zA-Z0-9.]/g, '');
   const rnd = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   return `resume-${rnd}${ext}`;
 }
 
-// Faylni saqlaydi (Cloudinary yoki lokal disk) va foydalanuvchiga ko'rsatiladigan yo'lni/URL'ni qaytaradi
+// Faylni saqlaydi (Cloudinary'da PRIVATE turida yoki lokal diskda) va
+// {storage, ref} qaytaradi — ref orqali keyinchalik ruxsat tekshirilgandan
+// so'nggina haqiqiy havola generatsiya qilinadi (pastdagi /resume endpointida).
 async function saveResumeFile(file) {
   if (!file) return null;
+  if (!isValidResumeBuffer(file.buffer, file.mimetype)) {
+    const err = new Error("Fayl buzilgan yoki bildirilgan turga mos emas");
+    err.status = 400;
+    throw err;
+  }
   const filename = makeResumeFilename(file.originalname);
 
   if (cloudinaryConfigured) {
-    return await new Promise((resolve, reject) => {
+    const publicId = `work-uz-resumes/${filename}`;
+    await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { resource_type: 'raw', public_id: `work-uz-resumes/${filename}`, overwrite: false },
-        (err, result) => (err ? reject(err) : resolve(result.secure_url))
+        { resource_type: 'raw', type: 'private', public_id: publicId, overwrite: false },
+        (err, result) => (err ? reject(err) : resolve(result))
       );
       stream.end(file.buffer);
     });
+    return { storage: 'cloudinary', ref: publicId };
   }
 
   fs.writeFileSync(path.join(UPLOADS_DIR, filename), file.buffer);
-  return `/uploads/${filename}`;
+  return { storage: 'local', ref: filename };
 }
 
 function sign(user) {
-  return jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id: user.id, name: user.name, email: user.email, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: '30d' });
 }
 
-function auth(req, res, next) {
+// Har bir so'rovda foydalanuvchi hali mavjudligini va sessiyasi bekor
+// qilinmaganligini (parol tiklanganda yoki "hamma joydan chiqish"da
+// token_version oshiriladi) tekshiradi — shuning uchun token o'g'irlansa ham,
+// uni serverda majburan bekor qilish mumkin.
+async function auth(req, res, next) {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Tizimga kiring' });
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const row = await db.prepare('SELECT id, name, email, token_version FROM users WHERE id=?').get(decoded.id);
+    if (!row || (row.token_version || 0) !== (decoded.tv || 0)) {
+      return res.status(401).json({ error: "Sessiya muddati tugagan, qayta kiring" });
+    }
+    req.user = { id: row.id, name: row.name, email: row.email };
     next();
   } catch (e) {
     return res.status(401).json({ error: "Sessiya muddati tugagan, qayta kiring" });
@@ -347,7 +427,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     }
 
     const payload = { pending: true, email: cleanEmail, message: "Tasdiqlash kodi emailingizga yuborildi" };
-    if (!smtpConfigured) payload.devCode = code;
+    if (!emailConfigured) payload.devCode = code;
     res.json(payload);
   } catch (err) {
     console.error('Register xatolik:', err);
@@ -370,7 +450,7 @@ app.post('/api/auth/verify', async (req, res) => {
     }
     await db.prepare("UPDATE users SET email_verified=1, verify_code=NULL, verify_expires=NULL WHERE id=?").run(row.id);
     const user = { id: row.id, name: row.name, email: row.email };
-    res.json({ token: sign(user), user });
+    res.json({ token: sign({ ...user, token_version: row.token_version }), user });
   } catch (err) {
     console.error('Verify xatolik:', err);
     res.status(500).json({ error: "Kutilmagan xatolik yuz berdi" });
@@ -395,7 +475,7 @@ app.post('/api/auth/resend', async (req, res) => {
       return res.status(502).json({ error: "Kodni qayta yuborib bo'lmadi" });
     }
     const payload = { ok: true };
-    if (!smtpConfigured) payload.devCode = code;
+    if (!emailConfigured) payload.devCode = code;
     res.json(payload);
   } catch (err) {
     console.error('Resend xatolik:', err);
@@ -415,7 +495,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(403).json({ error: "Avval emailingizni tasdiqlang", needsVerification: true, email: row.email });
     }
     const user = { id: row.id, name: row.name, email: row.email };
-    res.json({ token: sign(user), user });
+    res.json({ token: sign({ ...user, token_version: row.token_version }), user });
   } catch (err) {
     console.error('Login xatolik:', err);
     res.status(500).json({ error: "Kutilmagan xatolik yuz berdi" });
@@ -423,6 +503,20 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 });
 
 app.get('/api/auth/me', auth, (req, res) => res.json({ user: req.user }));
+
+// Barcha qurilmalar/brauzerlardagi sessiyalarni bir zumda bekor qiladi
+// (token o'g'irlangan deb gumon qilinsa yoki umuman ehtiyot chorasi sifatida)
+app.post('/api/auth/logout-all', auth, async (req, res) => {
+  try {
+    const row = await db.prepare('SELECT token_version FROM users WHERE id=?').get(req.user.id);
+    const newTokenVersion = ((row && row.token_version) || 0) + 1;
+    await db.prepare('UPDATE users SET token_version=? WHERE id=?').run(newTokenVersion, req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Logout-all xatolik:', err);
+    res.status(500).json({ error: "Kutilmagan xatolik yuz berdi" });
+  }
+});
 
 app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   try {
@@ -442,7 +536,7 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
       return res.status(502).json({ error: "Kodni yuborib bo'lmadi. SMTP sozlamalarini tekshiring." });
     }
     const payload = { ok: true };
-    if (!smtpConfigured) payload.devCode = code;
+    if (!emailConfigured) payload.devCode = code;
     res.json(payload);
   } catch (err) {
     console.error('Forgot-password xatolik:', err);
@@ -465,9 +559,10 @@ app.post('/api/auth/reset-password', async (req, res) => {
       return res.status(400).json({ error: "Kod muddati tugagan. Yangi kod so'rang." });
     }
     const hash = bcrypt.hashSync(newPassword, 10);
-    await db.prepare("UPDATE users SET password_hash=?, reset_code=NULL, reset_expires=NULL WHERE id=?").run(hash, row.id);
+    const newTokenVersion = (row.token_version || 0) + 1;
+    await db.prepare("UPDATE users SET password_hash=?, reset_code=NULL, reset_expires=NULL, token_version=? WHERE id=?").run(hash, newTokenVersion, row.id);
     const user = { id: row.id, name: row.name, email: row.email };
-    res.json({ token: sign(user), user });
+    res.json({ token: sign({ ...user, token_version: newTokenVersion }), user });
   } catch (err) {
     console.error('Reset-password xatolik:', err);
     res.status(500).json({ error: "Kutilmagan xatolik yuz berdi" });
@@ -570,16 +665,22 @@ app.post('/api/vacancies/:id/apply', auth, (req, res, next) => {
     const row = await db.prepare('SELECT * FROM vacancies WHERE id=?').get(req.params.id);
     if (!row) return res.status(404).json({ error: 'Vakansiya topilmadi' });
 
-    const resumePath = await saveResumeFile(req.file);
+    let saved = null;
+    try {
+      saved = await saveResumeFile(req.file);
+    } catch (fileErr) {
+      return res.status(fileErr.status || 400).json({ error: fileErr.message });
+    }
+
     let isNewApplication = false;
     try {
-      await db.prepare('INSERT INTO applications (user_id,vacancy_id,applied_at,resume_path) VALUES (?,?,?,?)')
-        .run(req.user.id, req.params.id, new Date().toISOString(), resumePath);
+      await db.prepare('INSERT INTO applications (user_id,vacancy_id,applied_at,resume_path,resume_storage) VALUES (?,?,?,?,?)')
+        .run(req.user.id, req.params.id, new Date().toISOString(), saved ? saved.ref : null, saved ? saved.storage : null);
       isNewApplication = true;
     } catch (e) {
-      if (resumePath) {
-        await db.prepare('UPDATE applications SET resume_path=? WHERE user_id=? AND vacancy_id=?')
-          .run(resumePath, req.user.id, req.params.id);
+      if (saved) {
+        await db.prepare('UPDATE applications SET resume_path=?, resume_storage=? WHERE user_id=? AND vacancy_id=?')
+          .run(saved.ref, saved.storage, req.user.id, req.params.id);
       }
     }
 
@@ -593,7 +694,7 @@ app.post('/api/vacancies/:id/apply', auth, (req, res, next) => {
         }
       }
     }
-    res.json({ ok: true, resumePath });
+    res.json({ ok: true, hasResume: !!saved });
   } catch (err) {
     console.error('Apply xatolik:', err);
     res.status(500).json({ error: "Ariza yuborishda xatolik yuz berdi" });
@@ -607,7 +708,8 @@ app.get('/api/vacancies/:id/applicants', auth, async (req, res) => {
     if (row.owner_id !== req.user.id) return res.status(403).json({ error: "Faqat e'lon egasi arizachilarni ko'ra oladi" });
 
     const applicants = await db.prepare(`
-      SELECT u.id, u.name, u.email, a.applied_at, a.resume_path
+      SELECT a.id AS application_id, u.id, u.name, u.email, a.applied_at,
+             (a.resume_path IS NOT NULL) AS has_resume
       FROM applications a JOIN users u ON u.id = a.user_id
       WHERE a.vacancy_id = ?
       ORDER BY a.applied_at DESC
@@ -615,6 +717,39 @@ app.get('/api/vacancies/:id/applicants', auth, async (req, res) => {
     res.json({ applicants });
   } catch (err) {
     console.error('Applicants xatolik:', err);
+    res.status(500).json({ error: "Kutilmagan xatolik yuz berdi" });
+  }
+});
+
+// Rezyumeni faqat (1) arizani yuborgan nomzodning o'zi, yoki (2) tegishli
+// vakansiya egasi yuklab olishi mumkin — boshqa hech kim, havolani bilsa ham.
+app.get('/api/applications/:id/resume', auth, async (req, res) => {
+  try {
+    const appRow = await db.prepare('SELECT * FROM applications WHERE id=?').get(req.params.id);
+    if (!appRow || !appRow.resume_path) return res.status(404).json({ error: 'Rezyume topilmadi' });
+
+    const vac = await db.prepare('SELECT owner_id FROM vacancies WHERE id=?').get(appRow.vacancy_id);
+    const isApplicant = appRow.user_id === req.user.id;
+    const isOwner = vac && vac.owner_id === req.user.id;
+    if (!isApplicant && !isOwner) {
+      return res.status(403).json({ error: "Bu faylni ko'rishga ruxsatingiz yo'q" });
+    }
+
+    if (appRow.resume_storage === 'cloudinary') {
+      const url = cloudinary.utils.private_download_url(appRow.resume_path, '', {
+        resource_type: 'raw', type: 'private', expires_at: Math.floor(Date.now() / 1000) + 300,
+      });
+      return res.redirect(url);
+    }
+
+    // Lokal fayl: yo'l traversal hujumidan himoya (fayl nomi UPLOADS_DIR ichida qolishi shart)
+    const safeName = path.basename(appRow.resume_path);
+    const fullPath = path.join(UPLOADS_DIR, safeName);
+    if (!fullPath.startsWith(UPLOADS_DIR)) return res.status(400).json({ error: "Noto'g'ri so'rov" });
+    if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Fayl topilmadi' });
+    res.download(fullPath);
+  } catch (err) {
+    console.error('Resume download xatolik:', err);
     res.status(500).json({ error: "Kutilmagan xatolik yuz berdi" });
   }
 });

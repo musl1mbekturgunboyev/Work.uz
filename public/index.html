@@ -1239,12 +1239,32 @@
           <div style="min-width:0;flex:1;">
             <div class="name">${escapeHtml(a.name)}</div>
             <div class="email">${escapeHtml(a.email)}</div>
-            ${a.resume_path ? `<a href="${a.resume_path}" target="_blank" style="font-size:11.5px;color:var(--blue);">📎 Rezyumeni ko'rish</a>` : ''}
+            ${a.has_resume ? `<button data-download-resume="${a.application_id}" style="font-size:11.5px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;">📎 Rezyumeni yuklab olish</button>` : ''}
           </div>
           <a class="mailto" href="mailto:${encodeURIComponent(a.email)}?subject=${encodeURIComponent('Work.uz — ' + (job?job.title:''))}">✉ Yozish</a>
           ${jobIsOpen !== false ? `<button class="mailto" style="background:var(--ok-soft,#E7FBF3);color:#0FA968;border:none;cursor:pointer;" data-hire="${a.id}" data-hire-vac="${vacancyId}">✓ Ishga oldim</button>` : ''}
         </div>
       `).join('');
+      applicantsList.querySelectorAll('[data-download-resume]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const appId = btn.dataset.downloadResume;
+          const original = btn.textContent;
+          btn.textContent = 'Yuklanmoqda...';
+          try{
+            const res = await fetch('/api/applications/' + appId + '/resume', {
+              headers: { 'Authorization': 'Bearer ' + authToken }
+            });
+            if(!res.ok){ const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Yuklab bo\'lmadi'); }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'rezyume';
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+          }catch(err){ showToast(err.message); }
+          btn.textContent = original;
+        });
+      });
       applicantsList.querySelectorAll('[data-hire]').forEach(btn=>{
         btn.addEventListener('click', async ()=>{
           if(!confirm(`${btn.closest('.applicant-row').querySelector('.name').textContent} — shu odamni ishga qabul qildingizmi? Lavozim yopiladi va nomzodga xabar ketadi.`)) return;
