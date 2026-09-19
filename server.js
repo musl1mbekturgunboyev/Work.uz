@@ -32,15 +32,27 @@ if (JWT_SECRET === 'dev-secret-CHANGE-ME-in-production') {
 }
 
 // ----- Ma'lumotlar bazasi (Turso sozlangan bo'lsa bulutda, aks holda lokal fayl) -----
-const usingTurso = !!(process.env.TURSO_DATABASE_URL);
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL || `file:${DB_PATH}`,
-  authToken: process.env.TURSO_AUTH_TOKEN || undefined,
-});
-if (usingTurso) {
-  console.log('☁️  Turso (bulutli, doimiy) ma\'lumotlar bazasiga ulanildi.');
-} else {
-  console.warn("⚠️  DIQQAT: Turso sozlanmagan — lokal fayl (data.sqlite) ishlatilmoqda. Bepul hostingda (Render Free) bu fayl xizmat uxlaganda o'chib ketishi mumkin. README.md dagi 'Ma'lumotlar bazasi doimiyligi' bo'limini ko'ring.");
+let client;
+
+async function connectDb() {
+  if (process.env.TURSO_DATABASE_URL) {
+    try {
+      const tursoClient = createClient({
+        url: process.env.TURSO_DATABASE_URL,
+        authToken: process.env.TURSO_AUTH_TOKEN || undefined,
+      });
+      await tursoClient.execute('SELECT 1'); // ulanish va tokenni sinab ko'ramiz
+      client = tursoClient;
+      console.log("☁️  Turso (bulutli, doimiy) ma'lumotlar bazasiga ulanildi.");
+      return;
+    } catch (err) {
+      console.error(`⚠️  DIQQAT: Turso'ga ulanib bo'lmadi (${err.message}). TURSO_DATABASE_URL/TURSO_AUTH_TOKEN to'g'riligini tekshiring.`);
+      console.warn("   Server ishlashda davom etadi, lekin hozircha LOKAL fayl (data.sqlite) ishlatiladi — bu ma'lumotlar doimiy saqlanmaydi.");
+    }
+  } else {
+    console.warn("⚠️  DIQQAT: Turso sozlanmagan — lokal fayl (data.sqlite) ishlatilmoqda. Bepul hostingda (Render Free) bu fayl xizmat uxlaganda o'chib ketishi mumkin. README.md dagi 'Ma'lumotlar bazasi doimiyligi' bo'limini ko'ring.");
+  }
+  client = createClient({ url: `file:${DB_PATH}` });
 }
 
 // db.prepare(sql).get/all/run(...) — eski sinxron uslubdagi chaqiruvlarni saqlab qolish uchun yupqa astar (shim)
@@ -72,6 +84,7 @@ const db = {
 };
 
 async function initDb() {
+  await connectDb();
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
